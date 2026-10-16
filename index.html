@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus - Mini Social Media</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar and smooth transitions */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-full antialiased flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-fade-in border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">Edit Profile</h3>
+                <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="edit-profile-form" onsubmit="handleSaveProfile(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Display Name</label>
+                    <input type="text" id="edit-name" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Avatar URL</label>
+                    <input type="url" id="edit-avatar" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Bio</label>
+                    <textarea id="edit-bio" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div class="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto overflow-hidden">
+
+        <!-- Left Navigation Sidebar -->
+        <aside class="w-full md:w-64 border-r border-slate-200 bg-white flex flex-col justify-between shrink-0 p-4 md:p-6 select-none z-10">
+            <div>
+                <!-- Logo -->
+                <div class="flex items-center gap-3 px-2 mb-8">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                        <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-slate-900 tracking-tight leading-none">Nexus</h1>
+                        <span class="text-xs text-indigo-600 font-semibold">Social Network</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="space-y-1.5">
+                    <button onclick="switchTab('feed')" id="nav-feed" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-indigo-600 bg-indigo-50/80">
+                        <i data-lucide="home" class="w-5 h-5"></i>
+                        <span>Feed</span>
+                    </button>
+                    <button onclick="switchTab('explore')" id="nav-explore" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                        <i data-lucide="compass" class="w-5 h-5"></i>
+                        <span>Explore</span>
+                    </button>
+                    <button onclick="switchTab('notifications')" id="nav-notifications" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900 relative">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span>Notifications</span>
+                        <span id="notif-badge" class="hidden absolute right-3 w-2 h-2 bg-rose-500 rounded-full"></span>
+                    </button>
+                    <button onclick="switchTab('profile')" id="nav-profile" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <span>Profile</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Current User Switcher Section -->
+            <div class="mt-6 pt-4 border-t border-slate-100">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-2">Active User Account</p>
+                <div class="relative">
+                    <button onclick="toggleUserDropdown()" class="w-full flex items-center justify-between p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-left">
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <img id="current-user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-slate-200">
+                            <div class="truncate">
+                                <p id="current-user-name" class="text-xs font-bold text-slate-900 truncate"></p>
+                                <p id="current-user-handle" class="text-[11px] text-slate-500 truncate"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                    </button>
+
+                    <!-- Switch User Dropdown -->
+                    <div id="user-dropdown" class="hidden absolute bottom-full left-0 mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-30">
+                        <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Switch Profile</div>
+                        <div id="user-list-dropdown" class="max-h-48 overflow-y-auto"></div>
+                        <div class="border-t border-slate-100 mt-1 pt-1 px-2">
+                            <button onclick="openCreateUserModal()" class="w-full text-left px-2 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-2">
+                                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Create New Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Feed / View Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50/50 flex flex-col items-center">
+            <div class="w-full max-w-2xl min-h-full pb-16">
+
+                <!-- FEED VIEW -->
+                <div id="view-feed" class="view-section space-y-4 p-4 md:p-6 animate-fade-in">
+                    <!-- Create Post Box -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <div class="flex gap-3">
+                            <img id="feed-create-avatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0">
+                            <div class="flex-1">
+                                <textarea id="post-content-input" rows="2" placeholder="What's happening in your universe?" class="w-full focus:outline-none resize-none text-slate-700 placeholder:text-slate-400 text-sm"></textarea>
+                                
+                                <!-- Optional Image Input Preview Container -->
+                                <div id="post-image-preview-container" class="hidden relative mt-2 mb-3 rounded-xl overflow-hidden border border-slate-200 max-h-60 bg-slate-100 flex items-center justify-center">
+                                    <img id="post-image-preview" src="" alt="Preview" class="w-full object-cover max-h-60">
+                                    <button type="button" onclick="removePostImage()" class="absolute top-2 right-2 bg-slate-900/70 hover:bg-slate-900 text-white p-1.5 rounded-full transition-all">
+                                        <i data-lucide="x" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-2">
+                                    <div class="flex items-center gap-1">
+                                        <label class="cursor-pointer p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold">
+                                            <i data-lucide="image" class="w-4 h-4"></i>
+                                            <span>Add Image</span>
+                                            <input type="url" id="post-image-url-input" class="hidden" onchange="previewPostImage(this.value)">
+                                        </label>
+                                        <button type="button" onclick="promptImagePrompt()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold">
+                                            <i data-lucide="link" class="w-4 h-4"></i>
+                                            <span>Image URL</span>
+                                        </button>
+                                    </div>
+                                    <button onclick="handleCreatePost()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all">
+                                        Post
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feed Filter Tabs -->
+                    <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                        <button onclick="setFeedFilter('all')" id="filter-all" class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm">All Posts</button>
+                        <button onclick="setFeedFilter('following')" id="filter-following" class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200 hover:bg-slate-100">Following</button>
+                    </div>
+
+                    <!-- Posts Container -->
+                    <div id="posts-feed-container" class="space-y-4">
+                        <!-- Rendered posts go here -->
+                    </div>
+                </div>
+
+                <!-- EXPLORE VIEW -->
+                <div id="view-explore" class="view-section hidden space-y-4 p-4 md:p-6 animate-fade-in">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Explore Users</h2>
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                            <input type="text" id="explore-search" oninput="renderExploreUsers(this.value)" placeholder="Search users..." class="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        </div>
+                    </div>
+                    <div id="explore-users-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Explore users go here -->
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS VIEW -->
+                <div id="view-notifications" class="view-section hidden space-y-4 p-4 md:p-6 animate-fade-in">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Notifications</h2>
+                        <button onclick="markAllNotificationsRead()" class="text-xs font-semibold text-indigo-600 hover:underline">Mark all as read</button>
+                    </div>
+                    <div id="notifications-container" class="space-y-2">
+                        <!-- Notifications go here -->
+                    </div>
+                </div>
+
+                <!-- PROFILE VIEW -->
+                <div id="view-profile" class="view-section hidden space-y-4 p-4 md:p-6 animate-fade-in">
+                    <!-- Profile Header Card -->
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-600 relative"></div>
+                        <div class="px-6 pb-6 pt-0 relative">
+                            <div class="flex justify-between items-end -mt-12 mb-4">
+                                <img id="profile-view-avatar" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-white">
+                                <div id="profile-action-btn-container">
+                                    <!-- Rendered dynamically (Edit Profile or Follow/Unfollow) -->
+                                </div>
+                            </div>
+                            <div>
+                                <h2 id="profile-view-name" class="text-xl font-bold text-slate-900"></h2>
+                                <p id="profile-view-handle" class="text-xs text-slate-500 mb-3"></p>
+                                <p id="profile-view-bio" class="text-sm text-slate-700 leading-relaxed mb-4"></p>
+
+                                <div class="flex items-center gap-6 text-xs text-slate-600 pt-3 border-t border-slate-100">
+                                    <div><strong id="profile-view-posts-count" class="text-slate-900">0</strong> Posts</div>
+                                    <button onclick="openFollowersModal('followers')" class="hover:underline"><strong id="profile-view-followers-count" class="text-slate-900">0</strong> Followers</button>
+                                    <button onclick="openFollowersModal('following')" class="hover:underline"><strong id="profile-view-following-count" class="text-slate-900">0</strong> Following</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Posts Header -->
+                    <div class="flex items-center justify-between pt-2">
+                        <h3 class="font-bold text-slate-900 text-base">Activity & Posts</h3>
+                    </div>
+
+                    <div id="profile-posts-container" class="space-y-4">
+                        <!-- User posts go here -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="create-user-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-fade-in border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">Create New Account</h3>
+                <button onclick="closeCreateUserModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleCreateUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Display Name</label>
+                    <input type="text" id="new-user-name" required placeholder="e.g. Alex River" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Username / Handle</label>
+                    <input type="text" id="new-user-handle" required placeholder="e.g. alexriver" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Avatar URL</label>
+                    <input type="url" id="new-user-avatar" required value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Bio</label>
+                    <textarea id="new-user-bio" rows="2" placeholder="Tell the world about yourself..." class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeCreateUserModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200">Create & Switch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Followers / Following Modal -->
+    <div id="users-list-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-fade-in border border-slate-100 flex flex-col max-h-[80vh]">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 id="users-modal-title" class="text-base font-bold text-slate-900">Followers</h3>
+                <button onclick="closeUsersModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="users-modal-content" class="overflow-y-auto space-y-3 flex-1 pr-1">
+                <!-- User items go here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        /* --- Initial Mock Data & State --- */
+        const DEFAULT_USERS = [
+            {
+                id: 'u1',
+                name: 'Elena Rostova',
+                handle: 'elena_dev',
+                avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
+                bio: 'Full-stack software architect & coffee fanatic ☕ Building sleek web experiences.',
+                followers: ['u2', 'u3'],
+                following: ['u2', 'u4']
+            },
+            {
+                id: 'u2',
+                name: 'Marcus Chen',
+                handle: 'marcus_lens',
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+                bio: 'Travel photographer & digital storyteller 📸 Exploring remote destinations.',
+                followers: ['u1'],
+                following: ['u1', 'u3']
+            },
+            {
+                id: 'u3',
+                name: 'Aria Montgomery',
+                handle: 'aria_designs',
+                avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
+                bio: 'Product Designer 🎨 Minimalist aesthetics and typography enthusiast.',
+                followers: ['u1', 'u2', 'u4'],
+                following: ['u1']
+            },
+            {
+                id: 'u4',
+                name: 'Devon Vance',
+                handle: 'devon_v',
+                avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+                bio: 'Indie hacker & maker 🚀 Shipping side projects every weekend.',
+                followers: ['u1'],
+                following: ['u3']
+            }
+        ];
+
+        const DEFAULT_POSTS = [
+            {
+                id: 'p1',
+                userId: 'u2',
+                content: 'Captured this breathtaking morning mist rolling over the alpine ridge. Nature always finds a way to reset the mind! 🌲✨',
+                image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+                createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+                likes: ['u1', 'u3', 'u4'],
+                comments: [
+                    { id: 'c1', userId: 'u1', content: 'Absolute masterpiece Marcus! Which trail is this?', createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
+                    { id: 'c2', userId: 'u2', content: 'Thanks Elena! It is up near Glacier Point.', createdAt: new Date(Date.now() - 3600000).toISOString() }
+                ]
+            },
+            {
+                id: 'p2',
+                userId: 'u1',
+                content: 'Just deployed our new component architecture using Tailwind and pure vanilla JavaScript state. Clean, fast, and gorgeous. ⚡',
+                image: '',
+                createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+                likes: ['u2', 'u3'],
+                comments: [
+                    { id: 'c3', userId: 'u4', content: 'Love the simplicity and speed of zero-build setups!', createdAt: new Date(Date.now() - 3600000 * 5).toISOString() }
+                ]
+            },
+            {
+                id: 'p3',
+                userId: 'u3',
+                content: 'Working on a fresh design system concept for mobile apps. Dark mode vs Light mode contrast checks are so crucial!',
+                image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+                createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+                likes: ['u1', 'u2', 'u4'],
+                comments: []
+            }
+        ];
+
+        const DEFAULT_NOTIFICATIONS = [
+            {
+                id: 'n1',
+                userId: 'u1',
+                actorId: 'u2',
+                type: 'like',
+                postId: 'p2',
+                read: false,
+                createdAt: new Date(Date.now() - 3600000 * 2).toISOString()
+            },
+            {
+                id: 'n2',
+                userId: 'u1',
+                actorId: 'u3',
+                type: 'follow',
+                read: false,
+                createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
+            }
+        ];
+
+        /* --- LocalStorage State Management --- */
+        let state = {
+            users: JSON.parse(localStorage.getItem('nexus_users')) || DEFAULT_USERS,
+            posts: JSON.parse(localStorage.getItem('nexus_posts')) || DEFAULT_POSTS,
+            notifications: JSON.parse(localStorage.getItem('nexus_notifications')) || DEFAULT_NOTIFICATIONS,
+            currentUserId: localStorage.getItem('nexus_current_user') || 'u1',
+            currentTab: 'feed',
+            feedFilter: 'all', // 'all' or 'following'
+            viewingProfileUserId: null // Used when clicking on any user profile
+        };
+
+        function saveState() {
+            localStorage.setItem('nexus_users', JSON.stringify(state.users));
+            localStorage.setItem('nexus_posts', JSON.stringify(state.posts));
+            localStorage.setItem('nexus_notifications', JSON.stringify(state.notifications));
+            localStorage.setItem('nexus_current_user', state.currentUserId);
+        }
+
+        /* --- Helper Functions --- */
+        function getCurrentUser() {
+            return state.users.find(u => u.id === state.currentUserId) || state.users[0];
+        }
+
+        function getUserById(userId) {
+            return state.users.find(u => u.id === userId) || { name: 'Unknown User', handle: 'unknown', avatar: 'https://placehold.co/100x100/e2e8f0/64748b?text=U' };
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-xs font-semibold text-white animate-fade-in flex items-center gap-2 ${type === 'success' ? 'bg-slate-900' : 'bg-rose-600'}`;
+            toast.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function timeAgo(dateString) {
+            const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + 'y ago';
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + 'mo ago';
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + 'd ago';
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + 'h ago';
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + 'm ago';
+            return 'Just now';
+        }
+
+        /* --- Navigation & Tabs --- */
+        function switchTab(tabName, customProfileId = null) {
+            state.currentTab = tabName;
+            if (tabName === 'profile') {
+                state.viewingProfileUserId = customProfileId || state.currentUserId;
+            }
+
+            // Update tab button styles
+            ['feed', 'explore', 'notifications', 'profile'].forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                if (btn) {
+                    if (t === tabName) {
+                        btn.className = "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-indigo-600 bg-indigo-50/80";
+                    } else {
+                        btn.className = "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900";
+                    }
+                }
+            });
+
+            // Show/Hide views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+            renderCurrentView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderCurrentView() {
+            renderHeaderUserCard();
+            updateNotificationBadge();
+
+            if (state.currentTab === 'feed') {
+                renderFeedPosts();
+            } else if (state.currentTab === 'explore') {
+                renderExploreUsers('');
+            } else if (state.currentTab === 'notifications') {
+                renderNotifications();
+            } else if (state.currentTab === 'profile') {
+                renderProfileView();
+            }
+            lucide.createIcons();
+        }
+
+        /* --- Header & Switcher --- */
+        function renderHeaderUserCard() {
+            const user = getCurrentUser();
+            document.getElementById('current-user-avatar').src = user.avatar;
+            document.getElementById('current-user-name').innerText = user.name;
+            document.getElementById('current-user-handle').innerText = '@' + user.handle;
+            document.getElementById('feed-create-avatar').src = user.avatar;
+
+            // Render dropdown list
+            const listEl = document.getElementById('user-list-dropdown');
+            listEl.innerHTML = state.users.map(u => `
+                <button onclick="switchUser('${u.id}')" class="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 transition-all text-left ${u.id === state.currentUserId ? 'bg-indigo-50/50' : ''}">
+                    <img src="${u.avatar}" alt="${u.name}" class="w-7 h-7 rounded-full object-cover border border-slate-200">
+                    <div class="truncate flex-1">
+                        <p class="text-xs font-bold text-slate-900 truncate">${u.name}</p>
+                        <p class="text-[10px] text-slate-500 truncate">@${u.handle}</p>
+                    </div>
+                    ${u.id === state.currentUserId ? '<i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600"></i>' : ''}
+                </button>
+            `).join('');
+        }
+
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('hidden');
+            lucide.createIcons();
+        }
+
+        function switchUser(userId) {
+            state.currentUserId = userId;
+            document.getElementById('user-dropdown').classList.add('hidden');
+            saveState();
+            renderCurrentView();
+            showToast('Switched account successfully');
+        }
+
+        /* --- Feed & Posts --- */
+        let temporaryPostImage = '';
+
+        function setFeedFilter(filter) {
+            state.feedFilter = filter;
+            document.getElementById('filter-all').className = `px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${filter === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}`;
+            document.getElementById('filter-following').className = `px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${filter === 'following' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}`;
+            renderFeedPosts();
+        }
+
+        function previewPostImage(url) {
+            if (!url) return;
+            temporaryPostImage = url;
+            const container = document.getElementById('post-image-preview-container');
+            const img = document.getElementById('post-image-preview');
+            img.src = url;
+            container.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function promptImagePrompt() {
+            const url = prompt('Enter image URL for your post:');
+            if (url) {
+                document.getElementById('post-image-url-input').value = url;
+                previewPostImage(url);
+            }
+        }
+
+        function removePostImage() {
+            temporaryPostImage = '';
+            document.getElementById('post-image-url-input').value = '';
+            document.getElementById('post-image-preview-container').classList.add('hidden');
+        }
+
+        function handleCreatePost() {
+            const content = document.getElementById('post-content-input').value.trim();
+            if (!content && !temporaryPostImage) {
+                showToast('Post cannot be empty', 'error');
+                return;
+            }
+
+            const newPost = {
+                id: 'p_' + Date.now(),
+                userId: state.currentUserId,
+                content: content,
+                image: temporaryPostImage,
+                createdAt: new Date().toISOString(),
+                likes: [],
+                comments: []
+            };
+
+            state.posts.unshift(newPost);
+            saveState();
+
+            // Clear inputs
+            document.getElementById('post-content-input').value = '';
+            removePostImage();
+            renderFeedPosts();
+            showToast('Post published successfully!');
+        }
+
+        function toggleLike(postId) {
+            const post = state.posts.find(p => p.id === postId);
+            if (!post) return;
+
+            const index = post.likes.indexOf(state.currentUserId);
+            if (index > -1) {
+                post.likes.splice(index, 1);
+            } else {
+                post.likes.push(state.currentUserId);
+                // Create notification if liking someone else's post
+                if (post.userId !== state.currentUserId) {
+                    state.notifications.unshift({
+                        id: 'n_' + Date.now(),
+                        userId: post.userId,
+                        actorId: state.currentUserId,
+                        type: 'like',
+                        postId: post.id,
+                        read: false,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+            }
+            saveState();
+            renderCurrentView();
+        }
+
+        function deletePost(postId) {
+            if (!confirm('Are you sure you want to delete this post?')) return;
+            state.posts = state.posts.filter(p => p.id !== postId);
+            saveState();
+            renderCurrentView();
+            showToast('Post deleted');
+        }
+
+        function addComment(postId) {
+            const inputEl = document.getElementById(`comment-input-${postId}`);
+            const content = inputEl.value.trim();
+            if (!content) return;
+
+            const post = state.posts.find(p => p.id === postId);
+            if (!post) return;
+
+            const newComment = {
+                id: 'c_' + Date.now(),
+                userId: state.currentUserId,
+                content: content,
+                createdAt: new Date().toISOString()
+            };
+
+            post.comments.push(newComment);
+
+            // Notify post owner
+            if (post.userId !== state.currentUserId) {
+                state.notifications.unshift({
+                    id: 'n_' + Date.now(),
+                    userId: post.userId,
+                    actorId: state.currentUserId,
+                    type: 'comment',
+                    postId: post.id,
+                    read: false,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            saveState();
+            renderCurrentView();
+            showToast('Comment added');
+        }
+
+        function deleteComment(postId, commentId) {
+            const post = state.posts.find(p => p.id === postId);
+            if (!post) return;
+            post.comments = post.comments.filter(c => c.id !== commentId);
+            saveState();
+            renderCurrentView();
+            showToast('Comment deleted');
+        }
+
+        function renderPostsHTML(postsArray) {
+            if (postsArray.length === 0) {
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="message-square" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm mb-1">No posts found</h4>
+                        <p class="text-xs text-slate-500">Be the first to share something or follow more users!</p>
+                    </div>
+                `;
+            }
+
+            return postsArray.map(post => {
+                const author = getUserById(post.userId);
+                const isLiked = post.likes.includes(state.currentUserId);
+                const isMyPost = post.userId === state.currentUserId;
+
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in">
+                        <!-- Post Header -->
+                        <div class="p-4 flex items-center justify-between pb-3">
+                            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('profile', '${author.id}')">
+                                <img src="${author.avatar}" alt="${author.name}" class="w-10 h-10 rounded-full object-cover border border-slate-200">
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-900 hover:text-indigo-600 transition-all">${author.name}</h4>
+                                    <p class="text-xs text-slate-500">@${author.handle} • ${timeAgo(post.createdAt)}</p>
+                                </div>
+                            </div>
+                            ${isMyPost ? `
+                                <button onclick="deletePost('${post.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition-all" title="Delete Post">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <!-- Post Content -->
+                        <div class="px-4 pb-3 text-sm text-slate-800 leading-relaxed whitespace-pre-line">${escapeHTML(post.content)}</div>
+
+                        <!-- Post Image if any -->
+                        ${post.image ? `
+                            <div class="w-full bg-slate-100 max-h-96 overflow-hidden border-y border-slate-100">
+                                <img src="${post.image}" alt="Post attachment" class="w-full object-cover max-h-96">
+                            </div>
+                        ` : ''}
+
+                        <!-- Post Stats / Actions Bar -->
+                        <div class="px-4 py-3 flex items-center justify-between border-t border-slate-100 bg-slate-50/50 text-xs">
+                            <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 font-semibold transition-all ${isLiked ? 'text-rose-600' : 'text-slate-600 hover:text-rose-600'}">
+                                <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-current' : ''}"></i>
+                                <span>${post.likes.length} Likes</span>
+                            </button>
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-600">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                <span>${post.comments.length} Comments</span>
+                            </div>
+                        </div>
+
+                        <!-- Comments Section -->
+                        <div class="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
+                            <!-- Add Comment Input -->
+                            <div class="flex gap-2">
+                                <input type="text" id="comment-input-${post.id}" placeholder="Write a thoughtful comment..." class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" onkeydown="if(event.key==='Enter') addComment('${post.id}')">
+                                <button onclick="addComment('${post.id}')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">Reply</button>
+                            </div>
+
+                            <!-- Comment List -->
+                            <div class="space-y-2 pt-1">
+                                ${post.comments.map(comment => {
+                                    const cAuthor = getUserById(comment.userId);
+                                    const isMyComment = comment.userId === state.currentUserId;
+                                    return `
+                                        <div class="bg-white p-2.5 rounded-xl border border-slate-200/60 flex items-start justify-between gap-2">
+                                            <div class="flex items-start gap-2.5 overflow-hidden">
+                                                <img src="${cAuthor.avatar}" alt="${cAuthor.name}" class="w-6 h-6 rounded-full object-cover mt-0.5 border border-slate-200 shrink-0 cursor-pointer" onclick="switchTab('profile', '${cAuthor.id}')">
+                                                <div class="text-xs">
+                                                    <span class="font-bold text-slate-900 cursor-pointer hover:text-indigo-600" onclick="switchTab('profile', '${cAuthor.id}')">${cAuthor.name}</span>
+                                                    <span class="text-slate-400 text-[10px] ml-1">${timeAgo(comment.createdAt)}</span>
+                                                    <p class="text-slate-700 mt-0.5 leading-normal">${escapeHTML(comment.content)}</p>
+                                                </div>
+                                            </div>
+                                            ${isMyComment ? `
+                                                <button onclick="deleteComment('${post.id}', '${comment.id}')" class="text-slate-300 hover:text-rose-600 p-1 rounded">
+                                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderFeedPosts() {
+            let postsToRender = [...state.posts];
+            if (state.feedFilter === 'following') {
+                const currentUser = getCurrentUser();
+                postsToRender = postsToRender.filter(p => currentUser.following.includes(p.userId) || p.userId === currentUser.id);
+            }
+            document.getElementById('posts-feed-container').innerHTML = renderPostsHTML(postsToRender);
+            lucide.createIcons();
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        /* --- Explore & Users --- */
+        function renderExploreUsers(query) {
+            const q = query.toLowerCase();
+            const filtered = state.users.filter(u => u.name.toLowerCase().includes(q) || u.handle.toLowerCase().includes(q) || u.bio.toLowerCase().includes(q));
+            const currentUser = getCurrentUser();
+
+            const container = document.getElementById('explore-users-container');
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 col-span-2 text-center py-8">No users found matching "${query}"</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(user => {
+                const isSelf = user.id === currentUser.id;
+                const isFollowing = currentUser.following.includes(user.id);
+
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 transition-all">
+                        <div class="flex items-center gap-3 overflow-hidden cursor-pointer" onclick="switchTab('profile', '${user.id}')">
+                            <img src="${user.avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0">
+                            <div class="truncate">
+                                <h4 class="font-bold text-sm text-slate-900 truncate hover:text-indigo-600">${user.name}</h4>
+                                <p class="text-xs text-slate-500 truncate">@${user.handle}</p>
+                                <p class="text-[11px] text-slate-600 truncate mt-0.5">${user.bio}</p>
+                            </div>
+                        </div>
+                        <div>
+                            ${!isSelf ? `
+                                <button onclick="toggleFollow('${user.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${isFollowing ? 'border border-slate-200 text-slate-600 hover:bg-slate-50' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}">
+                                    ${isFollowing ? 'Following' : 'Follow'}
+                                </button>
+                            ` : `<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">You</span>`}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function toggleFollow(userId) {
+            const currentUser = getCurrentUser();
+            const targetUser = state.users.find(u => u.id === userId);
+            if (!targetUser || currentUser.id === userId) return;
+
+            const isFollowing = currentUser.following.includes(userId);
+
+            if (isFollowing) {
+                // Unfollow
+                currentUser.following = currentUser.following.filter(id => id !== userId);
+                targetUser.followers = targetUser.followers.filter(id => id !== currentUser.id);
+                showToast(`Unfollowed @${targetUser.handle}`);
+            } else {
+                // Follow
+                currentUser.following.push(userId);
+                targetUser.followers.push(currentUser.id);
+
+                // Add Notification
+                state.notifications.unshift({
+                    id: 'n_' + Date.now(),
+                    userId: userId,
+                    actorId: currentUser.id,
+                    type: 'follow',
+                    read: false,
+                    createdAt: new Date().toISOString()
+                });
+
+                showToast(`Now following @${targetUser.handle}!`);
+            }
+
+            saveState();
+            renderCurrentView();
+        }
+
+        /* --- Profile View --- */
+        function renderProfileView() {
+            const profileUser = state.users.find(u => u.id === state.viewingProfileUserId) || getCurrentUser();
+            const currentUser = getCurrentUser();
+            const isSelf = profileUser.id === currentUser.id;
+            const isFollowing = currentUser.following.includes(profileUser.id);
+
+            document.getElementById('profile-view-avatar').src = profileUser.avatar;
+            document.getElementById('profile-view-name').innerText = profileUser.name;
+            document.getElementById('profile-view-handle').innerText = '@' + profileUser.handle;
+            document.getElementById('profile-view-bio').innerText = profileUser.bio || 'No bio provided yet.';
+            
+            const userPosts = state.posts.filter(p => p.userId === profileUser.id);
+            document.getElementById('profile-view-posts-count').innerText = userPosts.length;
+            document.getElementById('profile-view-followers-count').innerText = profileUser.followers.length;
+            document.getElementById('profile-view-following-count').innerText = profileUser.following.length;
+
+            const actionContainer = document.getElementById('profile-action-btn-container');
+            if (isSelf) {
+                actionContainer.innerHTML = `
+                    <button onclick="openEditProfileModal()" class="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Profile
+                    </button>
+                `;
+            } else {
+                actionContainer.innerHTML = `
+                    <button onclick="toggleFollow('${profileUser.id}')" class="px-5 py-2 rounded-xl text-xs font-semibold transition-all ${isFollowing ? 'border border-slate-200 text-slate-700 hover:bg-slate-50' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}">
+                        ${isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                `;
+            }
+
+            document.getElementById('profile-posts-container').innerHTML = renderPostsHTML(userPosts);
+            lucide.createIcons();
+        }
+
+        /* --- Edit Profile Modal --- */
+        function openEditProfileModal() {
+            const user = getCurrentUser();
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-avatar').value = user.avatar;
+            document.getElementById('edit-bio').value = user.bio || '';
+            document.getElementById('edit-profile-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('edit-profile-modal').classList.add('hidden');
+        }
+
+        function handleSaveProfile(e) {
+            e.preventDefault();
+            const user = getCurrentUser();
+            user.name = document.getElementById('edit-name').value.trim();
+            user.avatar = document.getElementById('edit-avatar').value.trim();
+            user.bio = document.getElementById('edit-bio').value.trim();
+
+            saveState();
+            closeEditProfileModal();
+            renderCurrentView();
+            showToast('Profile updated successfully!');
+        }
+
+        /* --- Create User Account Modal --- */
+        function openCreateUserModal() {
+            document.getElementById('user-dropdown').classList.add('hidden');
+            document.getElementById('create-user-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('create-user-modal').classList.add('hidden');
+        }
+
+        function handleCreateUser(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-user-name').value.trim();
+            const handle = document.getElementById('new-user-handle').value.trim().toLowerCase().replace(/\s+/g, '_');
+            const avatar = document.getElementById('new-user-avatar').value.trim();
+            const bio = document.getElementById('new-user-bio').value.trim();
+
+            if (state.users.some(u => u.handle === handle)) {
+                showToast('Username already taken. Choose another handle.', 'error');
+                return;
+            }
+
+            const newUser = {
+                id: 'u_' + Date.now(),
+                name,
+                handle,
+                avatar,
+                bio,
+                followers: [],
+                following: []
+            };
+
+            state.users.push(newUser);
+            state.currentUserId = newUser.id;
+            saveState();
+            closeCreateUserModal();
+            renderCurrentView();
+            showToast(`Welcome to Nexus, ${name}!`);
+        }
+
+        /* --- Followers / Following Modal Lists --- */
+        function openFollowersModal(type) {
+            const profileUser = state.users.find(u => u.id === state.viewingProfileUserId) || getCurrentUser();
+            const titleEl = document.getElementById('users-modal-title');
+            const contentEl = document.getElementById('users-modal-content');
+
+            const userIds = type === 'followers' ? profileUser.followers : profileUser.following;
+            titleEl.innerText = type === 'followers' ? 'Followers' : 'Following';
+
+            if (userIds.length === 0) {
+                contentEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">No users found.</p>`;
+            } else {
+                contentEl.innerHTML = userIds.map(id => {
+                    const u = getUserById(id);
+                    const isFollowing = getCurrentUser().following.includes(u.id);
+                    const isSelf = u.id === getCurrentUser().id;
+
+                    return `
+                        <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-all">
+                            <div class="flex items-center gap-2.5 cursor-pointer overflow-hidden" onclick="closeUsersModal(); switchTab('profile', '${u.id}')">
+                                <img src="${u.avatar}" alt="${u.name}" class="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0">
+                                <div class="truncate">
+                                    <p class="text-xs font-bold text-slate-900 truncate hover:text-indigo-600">${u.name}</p>
+                                    <p class="text-[10px] text-slate-500 truncate">@${u.handle}</p>
+                                </div>
+                            </div>
+                            <div>
+                                ${!isSelf ? `
+                                    <button onclick="toggleFollow('${u.id}'); openFollowersModal('${type}');" class="px-3 py-1 rounded-lg text-xs font-semibold ${isFollowing ? 'border border-slate-200 text-slate-600 hover:bg-slate-100' : 'bg-indigo-600 text-white hover:bg-indigo-700'}">
+                                        ${isFollowing ? 'Following' : 'Follow'}
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('users-list-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeUsersModal() {
+            document.getElementById('users-list-modal').classList.add('hidden');
+        }
+
+        /* --- Notifications --- */
+        function updateNotificationBadge() {
+            const unreadCount = state.notifications.filter(n => n.userId === state.currentUserId && !n.read).length;
+            const badge = document.getElementById('notif-badge');
+            if (unreadCount > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function markAllNotificationsRead() {
+            state.notifications.forEach(n => {
+                if (n.userId === state.currentUserId) n.read = true;
+            });
+            saveState();
+            renderNotifications();
+            updateNotificationBadge();
+            showToast('All notifications marked as read');
+        }
+
+        function renderNotifications() {
+            const userNotifs = state.notifications.filter(n => n.userId === state.currentUserId);
+            const container = document.getElementById('notifications-container');
+
+            if (userNotifs.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="bell-off" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm mb-1">No notifications yet</h4>
+                        <p class="text-xs text-slate-500">When people interact with you or follow you, you'll see it here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = userNotifs.map(n => {
+                const actor = getUserById(n.actorId);
+                let text = '';
+                let icon = 'bell';
+
+                if (n.type === 'like') {
+                    text = `liked your post.`;
+                    icon = 'heart';
+                } else if (n.type === 'comment') {
+                    text = `commented on your post.`;
+                    icon = 'message-circle';
+                } else if (n.type === 'follow') {
+                    text = `started following you.`;
+                    icon = 'user-plus';
+                }
+
+                return `
+                    <div class="bg-white rounded-xl border ${n.read ? 'border-slate-200' : 'border-indigo-200 bg-indigo-50/20'} p-3.5 flex items-center justify-between gap-3 shadow-sm transition-all">
+                        <div class="flex items-center gap-3 overflow-hidden cursor-pointer" onclick="switchTab('profile', '${actor.id}')">
+                            <div class="relative shrink-0">
+                                <img src="${actor.avatar}" alt="${actor.name}" class="w-10 h-10 rounded-full object-cover border border-slate-200">
+                                <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px]">
+                                    <i data-lucide="${icon}" class="w-3 h-3"></i>
+                                </div>
+                            </div>
+                            <div class="text-xs truncate">
+                                <p class="text-slate-800"><strong class="text-slate-900">${actor.name}</strong> ${text}</p>
+                                <p class="text-slate-400 text-[10px] mt-0.5">${timeAgo(n.createdAt)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        /* --- Initialization --- */
+        window.onload = function() {
+            renderCurrentView();
+        };
+    </script>
+</body>
+</html>
